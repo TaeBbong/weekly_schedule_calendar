@@ -10,13 +10,17 @@ import 'package:weekly_schedule_calendar/src/utils/utils.dart';
 ///
 /// 2. Show indicator if event exists.
 class WeeklyScheduleCalendar extends StatefulWidget {
-  final List<List<dynamic>> weeklySchedules;
+  final List<List<dynamic>> schedules;
   final ValueChanged<DateTime>? onWeekChanged;
+  final String title;
+  final String subtitle;
 
   const WeeklyScheduleCalendar({
     super.key,
-    required this.weeklySchedules,
+    required this.schedules,
     this.onWeekChanged,
+    required this.title,
+    required this.subtitle,
   });
 
   @override
@@ -194,7 +198,7 @@ class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
                                     ),
                                   ),
                                   SizedBox(height: 15),
-                                  widget.weeklySchedules[index].isNotEmpty
+                                  widget.schedules[index].isNotEmpty
                                       ? CircleAvatar(
                                         radius: 4,
                                         backgroundColor: colorScheme.secondary,
@@ -209,7 +213,7 @@ class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
                     ),
                   ),
                   SizedBox(height: 20),
-                  widget.weeklySchedules[_selected.weekday % 7].isNotEmpty
+                  widget.schedules[_selected.weekday % 7].isNotEmpty
                       ? SizedBox(
                         height: constraints.maxWidth * 0.48,
                         child: Container(
@@ -225,14 +229,12 @@ class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
                                 onTap: () {},
                                 title: Text(
                                   widget
-                                      .weeklySchedules[_selected.weekday %
-                                          7][index]
+                                      .schedules[_selected.weekday % 7][index]
                                       .subject,
                                 ),
                                 subtitle: Text(
                                   widget
-                                      .weeklySchedules[_selected.weekday %
-                                          7][index]
+                                      .schedules[_selected.weekday % 7][index]
                                       .duration,
                                 ),
                                 trailing: Icon(
