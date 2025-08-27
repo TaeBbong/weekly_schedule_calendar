@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:weekly_schedule_calendar/src/utils/utils.dart';
@@ -9,28 +11,45 @@ import 'package:weekly_schedule_calendar/src/utils/utils.dart';
 /// 1. Swipe left, right to change week.
 ///
 /// 2. Show indicator if event exists.
-class WeeklyScheduleCalendar extends StatefulWidget {
-  final List<List<dynamic>> schedules;
-  final ValueChanged<DateTime>? onWeekChanged;
-  final String title;
-  final String subtitle;
+class WeeklyScheduleCalendar<T> extends StatefulWidget {
+  final DateTime startDate;
+  final FutureOr<List<List<T>>> Function(DateTime sunday) scheduleLoader;
+  final Widget Function(BuildContext context, List<T> events)? scheduleBuilder;
+  final String Function(T schedule)? titleOf;
+  final String Function(T schedule)? subtitleOf;
+
+  final double height;
+  final double width;
+
+  final TextStyle? weekdayLabelStyle;
+  final TextStyle? dayNumberStyle;
 
   const WeeklyScheduleCalendar({
     super.key,
-    required this.schedules,
-    this.onWeekChanged,
-    required this.title,
-    required this.subtitle,
+    required this.startDate,
+    required this.scheduleLoader,
+    this.scheduleBuilder,
+    this.titleOf,
+    this.subtitleOf,
+    this.height = 0.48,
+    this.width = double.infinity,
+    this.weekdayLabelStyle,
+    this.dayNumberStyle,
   });
 
   @override
-  State<WeeklyScheduleCalendar> createState() => _WeeklyScheduleCalendar();
+  State<WeeklyScheduleCalendar<T>> createState() =>
+      _WeeklyScheduleCalendar<T>();
 }
 
-class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
+class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
   final DateTime _today = DateTime.now().date();
   late DateTime _selected;
   late DateTime _sunday;
+
+  bool _loading = true;
+  Object? _error;
+  List<List<T>> _schedules = List.generate(7, (_) => <T>[]);
 
   int get _selectedWeekday => _selected.weekday % 7;
 
@@ -42,12 +61,41 @@ class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
     _selected = _today;
     _sunday = _today.subtract(Duration(days: _today.weekday));
     _pageController = PageController(initialPage: 1);
+    _loadWeek();
   }
 
   @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadWeek() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+      _schedules = List.generate(7, (_) => <T>[]);
+    });
+
+    try {
+      final List<List> buckets = await widget.scheduleLoader(_sunday);
+      if (buckets.length != 7) {
+        throw StateError(
+          'scheduleLoader must return 7 buckets (Sun..Sat). '
+          'Got: ${buckets.length}',
+        );
+      }
+
+      setState(() {
+        _schedules = List.generate(7, (i) => List<T>.from(buckets[i]));
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e;
+        _loading = false;
+      });
+    }
   }
 
   DateTime _sundayWithPage(int page) {
@@ -86,7 +134,7 @@ class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
         _selected = _sunday.add(Duration(days: _selectedWeekday));
       });
 
-      widget.onWeekChanged?.call(_sunday);
+      _loadWeek();
     });
   }
 
@@ -198,7 +246,7 @@ class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
                                     ),
                                   ),
                                   SizedBox(height: 15),
-                                  widget.schedules[index].isNotEmpty
+                                  _schedules[index].isNotEmpty
                                       ? CircleAvatar(
                                         radius: 4,
                                         backgroundColor: colorScheme.secondary,
@@ -213,7 +261,7 @@ class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
                     ),
                   ),
                   SizedBox(height: 20),
-                  widget.schedules[_selected.weekday % 7].isNotEmpty
+                  _schedules[_selected.weekday % 7].isNotEmpty
                       ? SizedBox(
                         height: constraints.maxWidth * 0.48,
                         child: Container(
@@ -225,17 +273,18 @@ class _WeeklyScheduleCalendar extends State<WeeklyScheduleCalendar> {
                           child: ListView.separated(
                             itemCount: 2,
                             itemBuilder: (context, index) {
+                              print(widget.titleOf.runtimeType);
                               return ListTile(
                                 onTap: () {},
                                 title: Text(
-                                  widget
-                                      .schedules[_selected.weekday % 7][index]
-                                      .subject,
+                                  widget.titleOf!(
+                                    _schedules[_selected.weekday % 7][index],
+                                  ),
                                 ),
                                 subtitle: Text(
-                                  widget
-                                      .schedules[_selected.weekday % 7][index]
-                                      .duration,
+                                  widget.subtitleOf!(
+                                    _schedules[_selected.weekday % 7][index],
+                                  ),
                                 ),
                                 trailing: Icon(
                                   Icons.arrow_forward_ios,

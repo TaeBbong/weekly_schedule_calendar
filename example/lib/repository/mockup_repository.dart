@@ -1,7 +1,9 @@
 import 'package:example/models/schedule_example.dart';
 
 class MockupRepository {
-  Future<List<List<dynamic>>> fetchWeeklySchedules() async {
+  Future<List<List<ScheduleExample>>> fetchWeeklySchedules(
+    DateTime sunday,
+  ) async {
     await Future.delayed(Duration(seconds: 1));
     return [
       [

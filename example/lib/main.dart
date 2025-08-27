@@ -1,3 +1,4 @@
+import 'package:example/models/schedule_example.dart';
 import 'package:example/repository/mockup_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:weekly_schedule_calendar/weekly_schedule_calendar.dart';
@@ -28,26 +29,18 @@ class MyHomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: null,
-      body: FutureBuilder(
-        future: MockupRepository().fetchWeeklySchedules(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: const CircularProgressIndicator());
-          }
-
-          return SafeArea(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                WeeklyScheduleCalendar(
-                  schedules: snapshot.data!,
-                  title: 'subject',
-                  subtitle: 'duration',
-                ),
-              ],
+      body: SafeArea(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            WeeklyScheduleCalendar<ScheduleExample>(
+              startDate: DateTime.now(),
+              scheduleLoader: MockupRepository().fetchWeeklySchedules,
+              titleOf: (schedule) => schedule.subject,
+              subtitleOf: (schedule) => schedule.duration,
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
