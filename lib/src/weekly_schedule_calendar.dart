@@ -15,6 +15,7 @@ class WeeklyScheduleCalendar<T> extends StatefulWidget {
   final DateTime startDate;
   final FutureOr<List<List<T>>> Function(DateTime sunday) scheduleLoader;
   final Widget Function(BuildContext context, List<T> events)? scheduleBuilder;
+  final Widget Function(BuildContext context)? progressIndicator;
   final String Function(T schedule)? titleOf;
   final String Function(T schedule)? subtitleOf;
 
@@ -29,6 +30,7 @@ class WeeklyScheduleCalendar<T> extends StatefulWidget {
     required this.startDate,
     required this.scheduleLoader,
     this.scheduleBuilder,
+    this.progressIndicator,
     this.titleOf,
     this.subtitleOf,
     this.height = 0.48,
@@ -48,7 +50,6 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
   late DateTime _sunday;
 
   bool _loading = true;
-  Object? _error;
   List<List<T>> _schedules = List.generate(7, (_) => <T>[]);
 
   int get _selectedWeekday => _selected.weekday % 7;
@@ -73,7 +74,6 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
   Future<void> _loadWeek() async {
     setState(() {
       _loading = true;
-      _error = null;
       _schedules = List.generate(7, (_) => <T>[]);
     });
 
@@ -92,7 +92,6 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
       });
     } catch (e) {
       setState(() {
-        _error = e;
         _loading = false;
       });
     }
@@ -132,9 +131,8 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
       setState(() {
         _sunday = _sundayWithPage(page);
         _selected = _sunday.add(Duration(days: _selectedWeekday));
+        _loadWeek();
       });
-
-      _loadWeek();
     });
   }
 
@@ -261,7 +259,9 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
                     ),
                   ),
                   SizedBox(height: 20),
-                  _schedules[_selected.weekday % 7].isNotEmpty
+                  _loading
+                      ? Center(child: const CircularProgressIndicator())
+                      : _schedules[_selected.weekday % 7].isNotEmpty
                       ? SizedBox(
                         height: constraints.maxWidth * 0.48,
                         child: Container(
@@ -273,7 +273,6 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
                           child: ListView.separated(
                             itemCount: 2,
                             itemBuilder: (context, index) {
-                              print(widget.titleOf.runtimeType);
                               return ListTile(
                                 onTap: () {},
                                 title: Text(
