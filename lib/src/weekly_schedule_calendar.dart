@@ -3,6 +3,21 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:weekly_schedule_calendar/src/utils/utils.dart';
+import 'package:weekly_schedule_calendar/src/widgets/defaults/schedule_indicator.dart';
+import 'package:weekly_schedule_calendar/src/widgets/defaults/selected_cell_builder.dart';
+import 'package:weekly_schedule_calendar/src/widgets/defaults/title_builder.dart';
+import 'package:weekly_schedule_calendar/src/widgets/defaults/unselected_cell_builder.dart';
+
+typedef TitleBuilder = Widget Function(BuildContext context, DateTime selected);
+
+typedef UnselectedCellBuilder =
+    Widget Function(BuildContext context, DateTime day);
+typedef SelectedCellBuilder =
+    Widget Function(BuildContext context, DateTime day);
+typedef IndicatorBuilder<T> =
+    Widget Function(BuildContext context, List<T> schedules);
+typedef ScheduleListBuilder<T> =
+    Widget Function(BuildContext context, List<T> schedules);
 
 /// WeeklyCalendar widget
 ///
@@ -15,26 +30,13 @@ class WeeklyScheduleCalendar<T> extends StatefulWidget {
   final DateTime? startDate;
   final List<String> weekdayLabels;
   final FutureOr<List<List<T>>> Function(DateTime sunday) scheduleLoader;
-  final Widget Function(
-    BuildContext context,
-    DateTime sunday,
-    DateTime selected,
-    VoidCallback goPrev,
-    VoidCallback goNext,
-  )?
-  headerBuilder;
-  final Widget Function(BuildContext context)? progressIndicator;
-  final Widget Function(
-    BuildContext context,
-    DateTime day,
-    String weekdayLabel,
-    bool isSelected,
-    bool hasEvents,
-    VoidCallback onSelected,
-  )?
-  dayCellBuilder;
-  final Widget Function(BuildContext context, List<T> events)? scheduleBuilder;
-  final Widget Function(BuildContext context)? emptyScheduleBuilder;
+  final TitleBuilder? titleBuilder;
+  final Widget Function(BuildContext context)? loadingBuilder;
+  final UnselectedCellBuilder? unselectedCellBuilder;
+  final SelectedCellBuilder? selectedCellBuilder;
+  final IndicatorBuilder? indicatorBuilder;
+  final ScheduleListBuilder? scheduleListBuilder;
+  final Widget Function(BuildContext context)? emptyScheduleListBuilder;
   final String Function(T schedule)? titleOf;
   final String Function(T schedule)? subtitleOf;
 
@@ -50,11 +52,13 @@ class WeeklyScheduleCalendar<T> extends StatefulWidget {
     this.startDate,
     required this.scheduleLoader,
     this.weekdayLabels = Constants.weekdayLabels,
-    this.headerBuilder,
-    this.progressIndicator,
-    this.dayCellBuilder,
-    this.scheduleBuilder,
-    this.emptyScheduleBuilder,
+    this.titleBuilder,
+    this.loadingBuilder,
+    this.unselectedCellBuilder,
+    this.selectedCellBuilder,
+    this.indicatorBuilder,
+    this.scheduleListBuilder,
+    this.emptyScheduleListBuilder,
     this.titleOf,
     this.subtitleOf,
     this.onScheduleSelected,
@@ -181,10 +185,9 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          _selected.dateToYearMonth(),
-                          style: TextStyles.header(context),
-                        ),
+                        child:
+                            widget.titleBuilder?.call(context, _selected) ??
+                            DefaultTitleBuilder(selected: _selected),
                       ),
                       IconButton(
                         onPressed: _goPrevWeek,
@@ -236,45 +239,42 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
                                 mainAxisAlignment: MainAxisAlignment.start,
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
+                                  /* Weekday Label */
                                   Text(
-                                    Constants.weekdayLabels[index],
+                                    widget.weekdayLabels[index],
                                     style: TextStyles.weekdayLabel(context),
                                   ),
                                   SizedBox(height: 15),
+                                  /* Date Cell */
                                   GestureDetector(
                                     onTap: () {
                                       setState(() {
                                         _selected = day;
                                       });
                                     },
-                                    child: Container(
-                                      padding: EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color:
-                                            day == _selected
-                                                ? colorScheme.primary
-                                                : Colors.transparent,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Text(
-                                        day.day.toString().padLeft(2, '0'),
-                                        style:
-                                            day == _selected
-                                                ? TextStyles.dayNumberSelected(
+                                    child:
+                                        day == _selected
+                                            ? widget.selectedCellBuilder?.call(
                                                   context,
+                                                  day,
+                                                ) ??
+                                                DefaultSelectedCellBuilder(
+                                                  day: day,
                                                 )
-                                                : TextStyles.dayNumberUnselected(
-                                                  context,
+                                            : widget.unselectedCellBuilder
+                                                    ?.call(context, day) ??
+                                                DefaultUnselectedCellBuilder(
+                                                  day: day,
                                                 ),
-                                      ),
-                                    ),
                                   ),
                                   SizedBox(height: 15),
+                                  /* Indicator */
                                   _schedules[index].isNotEmpty
-                                      ? CircleAvatar(
-                                        radius: 4,
-                                        backgroundColor: colorScheme.secondary,
-                                      )
+                                      ? widget.indicatorBuilder?.call(
+                                            context,
+                                            _schedules[index],
+                                          ) ??
+                                          DefaultScheduleIndicator()
                                       : Container(),
                                 ],
                               );

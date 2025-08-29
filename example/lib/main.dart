@@ -35,6 +35,13 @@ class MyHomePage extends StatelessWidget {
           children: [
             WeeklyScheduleCalendar<ScheduleExample>(
               startDate: DateTime.now(),
+              titleBuilder: (context, selected) {
+                return Text(
+                  '${selected.year}. ${selected.month}',
+                  style: TextStyle(fontSize: 20, color: Colors.red),
+                );
+              },
+              weekdayLabels: ['일', '월', '화', '수', '목', '금', '토'],
               scheduleLoader: MockupRepository().fetchWeeklySchedules,
               titleOf: (schedule) => schedule.subject,
               subtitleOf: (schedule) => schedule.duration,
