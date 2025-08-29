@@ -12,31 +12,55 @@ import 'package:weekly_schedule_calendar/src/utils/utils.dart';
 ///
 /// 2. Show indicator if event exists.
 class WeeklyScheduleCalendar<T> extends StatefulWidget {
-  final DateTime startDate;
+  final DateTime? startDate;
+  final List<String> weekdayLabels;
   final FutureOr<List<List<T>>> Function(DateTime sunday) scheduleLoader;
-  final Widget Function(BuildContext context, List<T> events)? scheduleBuilder;
+  final Widget Function(
+    BuildContext context,
+    DateTime sunday,
+    DateTime selected,
+    VoidCallback goPrev,
+    VoidCallback goNext,
+  )?
+  headerBuilder;
   final Widget Function(BuildContext context)? progressIndicator;
+  final Widget Function(
+    BuildContext context,
+    DateTime day,
+    String weekdayLabel,
+    bool isSelected,
+    bool hasEvents,
+    VoidCallback onSelected,
+  )?
+  dayCellBuilder;
+  final Widget Function(BuildContext context, List<T> events)? scheduleBuilder;
+  final Widget Function(BuildContext context)? emptyScheduleBuilder;
   final String Function(T schedule)? titleOf;
   final String Function(T schedule)? subtitleOf;
 
-  final double height;
-  final double width;
+  final Function? onScheduleSelected;
 
-  final TextStyle? weekdayLabelStyle;
-  final TextStyle? dayNumberStyle;
+  final double? weekStripHeight;
+  final double? eventListHeight;
+
+  final bool showDefaultEventDot;
 
   const WeeklyScheduleCalendar({
     super.key,
-    required this.startDate,
+    this.startDate,
     required this.scheduleLoader,
-    this.scheduleBuilder,
+    this.weekdayLabels = Constants.weekdayLabels,
+    this.headerBuilder,
     this.progressIndicator,
+    this.dayCellBuilder,
+    this.scheduleBuilder,
+    this.emptyScheduleBuilder,
     this.titleOf,
     this.subtitleOf,
-    this.height = 0.48,
-    this.width = double.infinity,
-    this.weekdayLabelStyle,
-    this.dayNumberStyle,
+    this.onScheduleSelected,
+    this.weekStripHeight,
+    this.eventListHeight,
+    this.showDefaultEventDot = true,
   });
 
   @override
@@ -45,7 +69,7 @@ class WeeklyScheduleCalendar<T> extends StatefulWidget {
 }
 
 class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
-  final DateTime _today = DateTime.now().date();
+  late DateTime _today;
   late DateTime _selected;
   late DateTime _sunday;
 
@@ -59,8 +83,10 @@ class _WeeklyScheduleCalendar<T> extends State<WeeklyScheduleCalendar<T>> {
   @override
   void initState() {
     super.initState();
-    _selected = _today;
-    _sunday = _today.subtract(Duration(days: _today.weekday));
+    final DateTime now = (widget.startDate ?? DateTime.now()).date();
+    _today = now;
+    _selected = now;
+    _sunday = now.subtract(Duration(days: _today.weekday));
     _pageController = PageController(initialPage: 1);
     _loadWeek();
   }
